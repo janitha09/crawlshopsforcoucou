@@ -17,10 +17,7 @@
 package com.amandineleforestier.crawlshopsforcoucou;
 
 import com.amandineleforestier.model.Brandinfo;
-import java.util.Set;
 import java.util.regex.Pattern;
-
-import org.apache.http.Header;
 
 import edu.uci.ics.crawler4j.crawler.Page;
 import edu.uci.ics.crawler4j.crawler.WebCrawler;
@@ -74,12 +71,12 @@ public class BasicCrawler extends WebCrawler {
         String url = page.getWebURL().getURL();
         logger.info("URL: {}", url);
 
-        if (page.getParseData() instanceof HtmlParseData) {
-            HtmlParseData htmlParseData = (HtmlParseData) page.getParseData();
-            String html = htmlParseData.getHtml();
-            logger.info("Number of outgoing links: {}", htmlParseData.getOutgoingUrls().size());
-            //ParseDataFromSeek(html, url);
-        }
+//        if (page.getParseData() instanceof HtmlParseData) {
+//            HtmlParseData htmlParseData = (HtmlParseData) page.getParseData();
+//            String html = htmlParseData.getHtml();
+//            logger.info("Number of outgoing links: {}", htmlParseData.getOutgoingUrls().size());
+//            ParseDataFromSeek(html, url);
+//        }
     }
 
     public void ParseDataFromSeek(String html, String url) {
