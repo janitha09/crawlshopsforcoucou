@@ -43,7 +43,6 @@ public class ManageGooglePlaces {
     }
 
     private void commitPlaceInfoToShopTable(String sourceUrl, String searchText, Place detailedPlace) {
-        String placeTypes = "";
         EntityManager em = emf.createEntityManager();
         try {
             EntityTransaction entr = em.getTransaction();
@@ -53,18 +52,14 @@ public class ManageGooglePlaces {
             shop.setAddress(detailedPlace.getAddress());
             shop.setPhone(detailedPlace.getPhoneNumber());
             shop.setShopurl(detailedPlace.getWebsite());
-            //Logger.getLogger(NewEmptyJUnitTest.class.getName()).log(Level.INFO, "shop website: ", detailedPlace.getWebsite());
             shop.setSource(sourceUrl);
             shop.setSearchtext(searchText);
             shop.setGooglemapsurl(detailedPlace.getGoogleUrl());
-            for (String t : detailedPlace.getTypes()) {
-                placeTypes += "," + t;
-            }
             shop.setPlacetypes(Arrays.deepToString(detailedPlace.getTypes().toArray()));
             em.persist(shop);
             entr.commit();
         } catch (Exception ex) {
-            //Logger.getLogger(NewEmptyJUnitTest.class.getName()).log(Level.INFO, "could not commit", ex.getMessage());
+            Logger.getLogger(ManageGooglePlaces.class.getName()).log(Level.INFO, "could not commit", ex.getMessage());
         } finally {
             em.close();
         }
