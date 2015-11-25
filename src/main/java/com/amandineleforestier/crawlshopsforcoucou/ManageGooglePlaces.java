@@ -7,7 +7,6 @@ package com.amandineleforestier.crawlshopsforcoucou;
 
 import com.amandineleforestier.model.Shops;
 import java.util.Arrays;
-//import com.amandineleforestier.test.NewEmptyJUnitTest;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -15,7 +14,6 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
 import javax.persistence.Persistence;
-import org.jsoup.nodes.Element;
 import se.walkercrou.places.Place;
 
 /**
@@ -23,46 +21,56 @@ import se.walkercrou.places.Place;
  * @author janitha
  */
 public class ManageGooglePlaces {
+
     EntityManagerFactory emf = null;
     se.walkercrou.places.GooglePlaces client = null;
-    public ManageGooglePlaces(){
+
+    public ManageGooglePlaces() {
         emf = Persistence.createEntityManagerFactory("ShopsPU");
         client = new se.walkercrou.places.GooglePlaces("AIzaSyAbA_omv6dng-yrsMc7RwNVT2Fh9gqoook");
         client.setDebugModeEnabled(true);
     }
 
-    public void getAGooglePlaceFromTheString(String searchText, String sourceUrl) {
+    public void getAGooglePlaceFromTheString(String searchText, String sourceUrl, String alternateUrl) {
         List<Place> places = client.getPlacesByQuery(searchText, se.walkercrou.places.GooglePlaces.MAXIMUM_RESULTS);
+        if (places.isEmpty()) {
+            commitPlaceInfoToShopTable(sourceUrl, searchText, null, alternateUrl);
+        }
         Place detailedPlace = null;
         for (Place place : places) {
             detailedPlace = place.getDetails();
             System.out.println("place " + places.size() + " " + place.getName());
-            //assertEquals("http://www.1972-conceptstore.com/", detailedPlace.getWebsite());
-            commitPlaceInfoToShopTable(sourceUrl, searchText, detailedPlace);
+            commitPlaceInfoToShopTable(sourceUrl, searchText, detailedPlace, alternateUrl);
         }
     }
 
-    private void commitPlaceInfoToShopTable(String sourceUrl, String searchText, Place detailedPlace) {
+    private void commitPlaceInfoToShopTable(String sourceUrl, String searchText, Place detailedPlace, String alternateUrl) {
         EntityManager em = emf.createEntityManager();
         try {
             EntityTransaction entr = em.getTransaction();
             entr.begin();
             Shops shop = new Shops();
-            shop.setShopname(detailedPlace.getName());
-            shop.setAddress(detailedPlace.getAddress());
-            shop.setPhone(detailedPlace.getPhoneNumber());
-            shop.setShopurl(detailedPlace.getWebsite());
+            if (detailedPlace != null) {
+                shop.setShopname(detailedPlace.getName());
+                shop.setAddress(detailedPlace.getAddress());
+                shop.setPhone(detailedPlace.getPhoneNumber());
+                shop.setGooglemapsurl(detailedPlace.getGoogleUrl());
+                shop.setPlacetypes(Arrays.deepToString(detailedPlace.getTypes().toArray()));
+                if (detailedPlace.getWebsite() == null) {//which one to trust more
+                    shop.setShopurl(alternateUrl);
+                } else {
+                    shop.setShopurl(detailedPlace.getWebsite());
+                }
+            }
             shop.setSource(sourceUrl);
             shop.setSearchtext(searchText);
-            shop.setGooglemapsurl(detailedPlace.getGoogleUrl());
-            shop.setPlacetypes(Arrays.deepToString(detailedPlace.getTypes().toArray()));
             em.persist(shop);
             entr.commit();
-        } catch (Exception ex) {
-            Logger.getLogger(ManageGooglePlaces.class.getName()).log(Level.INFO, "could not commit", ex.getMessage());
+        } catch (NullPointerException ex) {
+            Logger.getLogger(ManageGooglePlaces.class.getName()).log(Level.SEVERE, "could not commit", ex.getCause().toString());
         } finally {
             em.close();
         }
     }
-    
+
 }

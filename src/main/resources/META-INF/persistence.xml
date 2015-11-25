@@ -4,6 +4,7 @@
     <provider>org.eclipse.persistence.jpa.PersistenceProvider</provider>
     <class>com.amandineleforestier.model.Brandinfo</class>
     <class>com.amandineleforestier.model.Shops</class>
+    <class>com.amandineleforestier.model.Emailaddresses</class>
     <properties>
       <property name="javax.persistence.jdbc.url" value="jdbc:mysql://localhost:3306/shops?zeroDateTimeBehavior=convertToNull"/>
       <property name="javax.persistence.jdbc.user" value="root"/>
