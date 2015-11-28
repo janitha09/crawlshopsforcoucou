@@ -6,9 +6,11 @@ package com.amandineleforestier.test;
  * and open the template in the editor.
  */
 import com.amandineleforestier.crawlshopsforcoucou.BasicCrawler;
+import com.amandineleforestier.crawlshopsforcoucou.EmailScraper;
 import com.amandineleforestier.crawlshopsforcoucou.ManageGooglePlaces;
 import com.amandineleforestier.model.Brandinfo;
 import com.amandineleforestier.model.Emailaddresses;
+import com.amandineleforestier.model.Shops;
 import edu.uci.ics.crawler4j.crawler.CrawlConfig;
 import edu.uci.ics.crawler4j.crawler.CrawlController;
 import edu.uci.ics.crawler4j.fetcher.PageFetcher;
@@ -16,6 +18,7 @@ import edu.uci.ics.crawler4j.robotstxt.RobotstxtConfig;
 import edu.uci.ics.crawler4j.robotstxt.RobotstxtServer;
 import java.io.IOException;
 import java.util.HashSet;
+import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -23,11 +26,17 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.naming.NamingException;
+import javax.naming.directory.Attribute;
+import javax.naming.directory.Attributes;
+import javax.naming.directory.DirContext;
+import javax.naming.directory.InitialDirContext;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
 import javax.persistence.Persistence;
 import javax.persistence.RollbackException;
+import org.eclipse.persistence.sessions.Session;
 import org.jsoup.Connection.Response;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -75,6 +84,7 @@ public class NewEmptyJUnitTest {
     }
 
     @Test
+    @Ignore
     public void jsoupstringhtml() {
         String html = "<html><head><title>First parse</title></head>"
                 + "<body><p>Parsed HTML into a doc.</p></body></html>";
@@ -218,7 +228,7 @@ public class NewEmptyJUnitTest {
 
     //http://misschips.be/stores/saudi-arabia/
     @Test
-//    @Ignore
+    @Ignore
     public void getPlaceInformationFromNameForEmpireStateBuilding() {
 //        https://issues.apache.org/jira/browse/HTTPCLIENT-1613
         GooglePlaces client = new GooglePlaces("AIzaSyAbA_omv6dng-yrsMc7RwNVT2Fh9gqoook ");
@@ -499,7 +509,7 @@ public class NewEmptyJUnitTest {
     }
 
     @Test
-//    @Ignore
+    @Ignore
     public void getTextBeforeANode() throws IOException {
         Response response = Jsoup.connect("http://www.newblack.se/en/pages/retailers.html")
                 .ignoreContentType(true)
@@ -619,7 +629,7 @@ public class NewEmptyJUnitTest {
 //    http://www.margauxlonnberg.com/retailers.php
 
     @Test
-//    @Ignore
+    @Ignore
     public void margauxlonnberg() throws IOException {
 //        place 1 Asuna
 //12 12 Arlington 1001C N Fillmore ST #135 Lynn Louisa
@@ -665,7 +675,7 @@ public class NewEmptyJUnitTest {
 //        System.out.println(cities.get(0).select("li.retailer").text());
 
     @Test
-//    @Ignore
+    @Ignore
     public void handleZeroResults() {
         //modified the source to return null and not an exception
         GooglePlaces client = new GooglePlaces("AIzaSyAbA_omv6dng-yrsMc7RwNVT2Fh9gqoook ");
@@ -674,5 +684,79 @@ public class NewEmptyJUnitTest {
         assertEquals(0, places.size());
         ManageGooglePlaces gp = new ManageGooglePlaces();
         gp.getAGooglePlaceFromTheString(name, "http://www.margauxlonnberg.com/retailers.php", "");
+    }
+
+    @Test
+//    @Ignore
+    public void preFetchBrandNameFromTable() {
+        int offset = 0;
+        EntityManagerFactory emf = Persistence.createEntityManagerFactory("ShopsPU");
+        EntityManager em = emf.createEntityManager();
+        List<Brandinfo> models;
+        while ((models = em.createQuery("from Brandinfo m where m.country = 'UK' ", Brandinfo.class).
+                setFirstResult(offset).
+                setMaxResults(100).
+                getResultList()).size() > 0) {
+            em.getTransaction().begin();
+            for (Brandinfo model : models) {
+                Logger.getLogger(NewEmptyJUnitTest.class.getName()).log(Level.INFO, "do something with model: " + model.getBrandname());
+            }
+
+            em.flush();
+            em.clear();
+            em.getTransaction().commit();
+            offset += models.size();
+        }
+    }
+//http://stackoverflow.com/questions/5067619/jpa-what-is-the-proper-pattern-for-iterating-over-large-result-sets
+
+    @Test
+    public void preFetchShopUrlsFromTable() {
+        int offset = 0;
+        EntityManagerFactory emf = Persistence.createEntityManagerFactory("ShopsPU");
+        EntityManager em = emf.createEntityManager();
+        List<Shops> models = null;//where sh.placetypes like '%clothing%' and sh.shopurl is not null and sh.shopurl <> ''
+//        EmailScraper emailFinder = new EmailScraper();
+        while ((models = getIterableModels(em, offset, Shops.class)).size() > 0) {
+            em.getTransaction().begin();
+            for (Shops model : models) {
+                Logger.getLogger(NewEmptyJUnitTest.class.getName()).log(Level.INFO, "Url: " + model.getShopurl());
+                crawlForEmailAddresses(model.getShopurl());
+            }
+            em.flush();
+            em.clear();
+            em.getTransaction().commit();
+            offset += models.size();
+        }
+    }
+
+    private List<Shops> getIterableModels(EntityManager em, int offset, Class<Shops> aClass) {
+        return em.createQuery("FROM Shops sh where sh.placetypes like '%clothing%' and sh.shopurl is not null and sh.shopurl <> ''", aClass).
+                setFirstResult(offset).
+                setMaxResults(100).
+                getResultList();
+    }
+
+    private void crawlForEmailAddresses(String urlSeedToBeScraped) {
+        //        SELECT shopurl FROM shops.shops where placetypes like '%clothing%' and shopurl is not null and shopurl <> '';
+        CrawlConfig config = new CrawlConfig();
+        config.setCrawlStorageFolder("C:\\Users\\janitha\\Documents\\NetBeansProjects\\crawlshopsforcoucou\\target\\interim");
+        config.setPolitenessDelay(1000);
+        config.setMaxDepthOfCrawling(2);
+        config.setIncludeBinaryContentInCrawling(false);
+        config.setResumableCrawling(false);
+        PageFetcher pageFetcher = new PageFetcher(config);
+        RobotstxtConfig robotstxtConfig = new RobotstxtConfig();
+        RobotstxtServer robotstxtServer = new RobotstxtServer(robotstxtConfig, pageFetcher);
+        CrawlController controller = null;
+        String shopUrl = urlSeedToBeScraped;
+        try {
+            controller = new CrawlController(config, pageFetcher, robotstxtServer);
+            controller.addSeed(shopUrl);
+            EmailScraper.setStartWithDomain(shopUrl);
+            controller.start(EmailScraper.class, 1);
+        } catch (Exception ex) {
+            Logger.getLogger(NewEmptyJUnitTest.class.getName()).log(Level.SEVERE, "Something went wrong" + ex.getMessage());
+        }
     }
 }
