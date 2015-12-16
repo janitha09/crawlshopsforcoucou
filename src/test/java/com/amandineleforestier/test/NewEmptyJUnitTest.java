@@ -1,4 +1,12 @@
 package com.amandineleforestier.test;
+//Henry-christ.com
+//Raw-fashion.com
+//Kirobykim.com
+//Decadent need website
+//Modstrom not stockists on website they have sales agents concepth stores http://www.modstrom.com/en/stores
+//Marcopolo need website
+//Charlieway need website
+//Majestic filatures
 
 /*
  * To change this license header, choose License Headers in Project Properties.
@@ -6,19 +14,18 @@ package com.amandineleforestier.test;
  * and open the template in the editor.
  */
 import com.amandineleforestier.crawlshopsforcoucou.BasicCrawler;
-import com.amandineleforestier.crawlshopsforcoucou.EmailScraper;
 import com.amandineleforestier.crawlshopsforcoucou.ManageGooglePlaces;
 import com.amandineleforestier.model.Brandinfo;
-import com.amandineleforestier.model.Emailaddresses;
-import com.amandineleforestier.model.Shops;
 import edu.uci.ics.crawler4j.crawler.CrawlConfig;
 import edu.uci.ics.crawler4j.crawler.CrawlController;
 import edu.uci.ics.crawler4j.fetcher.PageFetcher;
 import edu.uci.ics.crawler4j.robotstxt.RobotstxtConfig;
 import edu.uci.ics.crawler4j.robotstxt.RobotstxtServer;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
-import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -26,22 +33,14 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import javax.naming.NamingException;
-import javax.naming.directory.Attribute;
-import javax.naming.directory.Attributes;
-import javax.naming.directory.DirContext;
-import javax.naming.directory.InitialDirContext;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
-import javax.persistence.EntityTransaction;
 import javax.persistence.Persistence;
-import javax.persistence.RollbackException;
-import org.eclipse.persistence.sessions.Session;
 import org.jsoup.Connection.Response;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
-import org.jsoup.nodes.TextNode;
+import org.jsoup.parser.Tag;
 import org.jsoup.safety.Whitelist;
 import org.jsoup.select.Elements;
 import org.junit.Test;
@@ -687,7 +686,7 @@ public class NewEmptyJUnitTest {
     }
 
     @Test
-//    @Ignore
+    @Ignore
     public void preFetchBrandNameFromTable() {
         int offset = 0;
         EntityManagerFactory emf = Persistence.createEntityManagerFactory("ShopsPU");
@@ -711,52 +710,216 @@ public class NewEmptyJUnitTest {
 //http://stackoverflow.com/questions/5067619/jpa-what-is-the-proper-pattern-for-iterating-over-large-result-sets
 
     @Test
-    public void preFetchShopUrlsFromTable() {
-        int offset = 0;
-        EntityManagerFactory emf = Persistence.createEntityManagerFactory("ShopsPU");
-        EntityManager em = emf.createEntityManager();
-        List<Shops> models = null;//where sh.placetypes like '%clothing%' and sh.shopurl is not null and sh.shopurl <> ''
-//        EmailScraper emailFinder = new EmailScraper();
-        while ((models = getIterableModels(em, offset, Shops.class)).size() > 0) {
-            em.getTransaction().begin();
-            for (Shops model : models) {
-                Logger.getLogger(NewEmptyJUnitTest.class.getName()).log(Level.INFO, "Url: " + model.getShopurl());
-                crawlForEmailAddresses(model.getShopurl());
+    public void getAddresseFromHenryChrist() throws IOException {
+        String brandUrl = "http://henry-christ.com/hc/can-be-found-here/?lang=en";
+        Response response = Jsoup.connect(brandUrl)
+                .ignoreContentType(true)
+                .userAgent("Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:25.0) Gecko/20100101 Firefox/25.0")
+                .referrer("http://www.google.com")
+                .timeout(12000)
+                .followRedirects(true)
+                .execute();
+
+        Document doc = response.parse();
+        Elements countries = doc.select("h3[id]");
+        assertEquals(18, countries.size());
+//        for (Element country : countries) {
+//            System.out.println(country.attr("id"));
+//        }
+        Elements shopsincountries = doc.select("h3~div > ul, h3~ul");
+        assertEquals(18, shopsincountries.size());
+//        for (Element shopsincountry : shopsincountries) {
+//            Elements shops = shopsincountry.select("li");
+//            for (Element shop : shops) {
+//                System.out.println(shop.text());
+//            }
+//        }
+//        for (Element country : countries){
+        ManageGooglePlaces gp = new ManageGooglePlaces();
+        for (int s = 6; s < countries.size(); s++) {
+//            System.out.println(countries.get(s).text());// + " " + shopsincountries.get(s));
+            Elements shops = (shopsincountries.get(s)).select("li");
+            for (int c = 0; c < shops.size(); c++) {//Element shop : shops) {
+                Matcher matcher = android.util.Patterns.WEB_URL.matcher(shops.get(c).text());
+                String url = "";
+                while (matcher.find()) {
+                    url = matcher.group();//gauranteed to be just one
+                }
+                Logger.getLogger(NewEmptyJUnitTest.class.getName()).log(Level.INFO, "{0} {1}", new Object[]{countries.get(s).attr("id"), shops.get(c).text().replace(url, "")});
+//                System.out.println(countries.get(s).attr("id") + " " + shop.text().replace(url, "") + "url " + url);
+                gp.getAGooglePlaceFromTheString(countries.get(s).attr("id") + " " + shops.get(c).text().replace(url, ""), brandUrl, url);
             }
-            em.flush();
-            em.clear();
-            em.getTransaction().commit();
-            offset += models.size();
         }
     }
 
-    private List<Shops> getIterableModels(EntityManager em, int offset, Class<Shops> aClass) {
-        return em.createQuery("FROM Shops sh where sh.placetypes like '%clothing%' and sh.shopurl is not null and sh.shopurl <> ''", aClass).
-                setFirstResult(offset).
-                setMaxResults(100).
-                getResultList();
+    @Test
+    public void findUrl() {
+        String url = "                            <li>\n"
+                + "                                Rudolf Alpine Fashion<br />\n"
+                + "                                Promenada 33<br />\n"
+                + "                                7018 Flims-Waldhaus<br />\n"
+                + "                                www.rudolf-alpinefashion.ch\n"
+                + "                            </li>\n"
+                + "                            <li>\n"
+                + "                                Lorenz Bach<br />\n"
+                + "                                Hauptstrasse 2<br />\n"
+                + "                                3780 Gstaad\n"
+                + "                            </li>\n"
+                + "                            <li>\n"
+                + "                                Ahead Fashion<br />\n"
+                + "                                Alte Bahnhofsstr. 9<br />\n"
+                + "                                7250 Klosters\n"
+                + "                            </li>\n"
+                + "                            <li>\n"
+                + "                                Pesko<br />\n"
+                + "                                Voa principala 56<br />\n"
+                + "                                7078 Lenzerheide<br />\n"
+                + "                                www.pesko.ch\n"
+                + "                            </li>\n"
+                + "                            <li>\n"
+                + "                                Rive Gauche<br />\n"
+                + "                                Werchlaubengässli 14<br />\n"
+                + "                                6004 Luzern<br />\n"
+                + "                                www.maisondeboer.ch\n"
+                + "                            </li>\n"
+                + "                            <li>\n"
+                + "                                Kaufhaus Krone<br />\n"
+                + "                                Solothurnerstr. 8<br />\n"
+                + "                                4600 Olten<br />\n"
+                + "                                www.kaufhauskrone.ch\n"
+                + "                            </li>\n"
+                + "                            <li>\n"
+                + "                                get2gether<br />\n"
+                + "                                Kluggasse 5<br />\n"
+                + "                                8640 Rapperswil<br />\n"
+                + "                                www.get2gether.ch\n"
+                + "                            </li>";
+
+//        return emails;
+        Matcher matcher = android.util.Patterns.WEB_URL.matcher(url);
+        assertEquals(false, matcher.matches());
+
+        while (matcher.find()) {
+            System.out.println(matcher.group());
+//            logger.info( addr);
+//            emails.add(addr);
+        }
     }
 
-    private void crawlForEmailAddresses(String urlSeedToBeScraped) {
-        //        SELECT shopurl FROM shops.shops where placetypes like '%clothing%' and shopurl is not null and shopurl <> '';
-        CrawlConfig config = new CrawlConfig();
-        config.setCrawlStorageFolder("C:\\Users\\janitha\\Documents\\NetBeansProjects\\crawlshopsforcoucou\\target\\interim");
-        config.setPolitenessDelay(1000);
-        config.setMaxDepthOfCrawling(2);
-        config.setIncludeBinaryContentInCrawling(false);
-        config.setResumableCrawling(false);
-        PageFetcher pageFetcher = new PageFetcher(config);
-        RobotstxtConfig robotstxtConfig = new RobotstxtConfig();
-        RobotstxtServer robotstxtServer = new RobotstxtServer(robotstxtConfig, pageFetcher);
-        CrawlController controller = null;
-        String shopUrl = urlSeedToBeScraped;
-        try {
-            controller = new CrawlController(config, pageFetcher, robotstxtServer);
-            controller.addSeed(shopUrl);
-            EmailScraper.setStartWithDomain(shopUrl);
-            controller.start(EmailScraper.class, 1);
-        } catch (Exception ex) {
-            Logger.getLogger(NewEmptyJUnitTest.class.getName()).log(Level.SEVERE, "Something went wrong" + ex.getMessage());
+    @Test
+    @Ignore //20151012
+    public void getAddresseFromRawFashion() throws IOException {
+        String brandUrl = "http://raw-fashion.com/butiki/";
+        Response response = Jsoup.connect(brandUrl)
+                .ignoreContentType(true)
+                .userAgent("Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:25.0) Gecko/20100101 Firefox/25.0")
+                .referrer("http://www.google.com")
+                .timeout(12000)
+                .followRedirects(true)
+                .execute();
+
+        Document doc = response.parse();
+        Elements countries = doc.select("div.row.container.divided");// > div.small-12.large-3.columns");
+        assertEquals(6, countries.size());
+//        System.out.println(countries);
+        ManageGooglePlaces gp = new ManageGooglePlaces();
+        for (int c = 0; c < countries.size(); c++) {
+            Elements shopsandcountries = countries.get(c).select("p.thin-font"); //div.small-12.large-3.columns div.column-inner  a[href]
+//            System.out.println(shopsandcountries.first().text());
+            for (int s = 1; s < shopsandcountries.size(); s++) {
+//                if ((shopsandcountries.first().text() + " " + shopsandcountries.get(s).text() + " " + shopsandcountries.get(s).attr("href")).length() > 12) {
+//                    System.out.println((shopsandcountries.first().text() + " " + shopsandcountries.get(s).text() + " " + shopsandcountries.get(s).attr("href")).length());
+                Logger.getLogger(NewEmptyJUnitTest.class.getName()).log(Level.INFO, "{0} {1} {2}",
+                        new Object[]{shopsandcountries.first().text(), shopsandcountries.get(s).text(), shopsandcountries.get(s).attr("href")});
+//                System.out.println((shopsandcountries.first().text() + " " + shopsandcountries.get(s).text() + " " + shopsandcountries.get(s).attr("href")));
+                gp.getAGooglePlaceFromTheString(shopsandcountries.first().text() + " " + shopsandcountries.get(s).text() + " " + shopsandcountries.get(s).attr("href"), brandUrl, "");
+//                }
+            }
+        }
+    }
+
+    @Test
+    @Ignore //20151212
+    public void getAddresseFromKirobyKim() throws IOException {
+        String brandUrl = "http://www.kirobykim.com/p/store-locator.html";
+        Response response = Jsoup.connect(brandUrl)
+                .ignoreContentType(true)
+                .userAgent("Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:25.0) Gecko/20100101 Firefox/25.0")
+                .referrer("http://www.google.com")
+                .timeout(12000)
+                .followRedirects(true)
+                .execute();
+
+        Document doc = response.parse();
+        Elements countries = doc.select("div span[style*=font-family],b[style*=font-family] ");// > div.small-12.large-3.columns");
+        assertEquals(57, countries.size());
+        //assertTrue(countries.contains(Collections.singleton("<span style=\"font-family: Trebuchet MS, sans-serif;\"><br></span>")));
+        countries.removeAll(Collections.singleton(new Element(Tag.valueOf("span"), "").attr("style", "font-family: Trebuchet MS, sans-serif;").html("<br>")));
+        countries.removeAll(Collections.singleton(new Element(Tag.valueOf("span"), "").attr("style", "font-family: Trebuchet MS, sans-serif;")));
+        countries.removeAll(Collections.singleton(new Element(Tag.valueOf("span"), "").attr("style", "font-family: 'Trebuchet MS', sans-serif; text-align: left;").html("<br>")));
+        ManageGooglePlaces gp = new ManageGooglePlaces();
+        for (int c = 40; c < countries.size() - 1; c = c + 1) {
+//            if (!countries.get(c).text().trim().equals(""))
+//            System.out.println(c + " " + countries.get(c));
+            System.out.println(c + " " + countries.get(39).text().trim().replace(":", "") + " " + countries.get(c).text().trim() + " " + countries.get(c + 1).text().trim());
+            gp.getAGooglePlaceFromTheString(countries.get(39).text().trim().replace(":", "") + " " + countries.get(c).text().trim() + " " + countries.get(c + 1).text().trim(), brandUrl, "");
+        }
+    }
+
+    @Test
+    public void testRemoveAllUsingCollectionSingleton() {
+        String init[] = {"One", "<span style=\"font-family: Trebuchet MS, sans-serif;\"><br></span>", "Three", "One", "<span style=\"font-family: Trebuchet MS, sans-serif;\"><br></span>", "Three"};
+
+        // create two lists
+        List list1 = new ArrayList(Arrays.asList(init));
+        List list2 = new ArrayList(Arrays.asList(init));
+
+        // remove from list1
+        list1.remove("One");
+        assertTrue(list1.contains("One"));
+//        System.out.println("List1 value: " + list1);
+
+        // remove from list2 using singleton
+        list2.removeAll(Collections.singleton("One"));
+        list2.removeAll(Collections.singleton("<span style=\"font-family: Trebuchet MS, sans-serif;\"><br></span>"));
+        assertFalse(list2.contains("One"));
+        assertFalse(list2.contains("<span style=\"font-family: Trebuchet MS, sans-serif;\"><br></span>"));
+//        System.out.println("The SingletonList is :" + list2);
+        Element e1 = new Element(Tag.valueOf("span"), "");
+        e1.attr("style", "font-family: Trebuchet MS, sans-serif;");
+        e1.html("name of shop");
+        Element e2 = new Element(Tag.valueOf("span"), "");
+        e2.attr("style", "font-family: Trebuchet MS, sans-serif;");
+        e2.html("<br>");
+        System.out.println(e1);
+        Elements es = new Elements(e1, e2);
+        assertEquals(true, es.contains(e1));
+        assertEquals(true, es.contains(e2));
+        es.removeAll(Collections.singleton(e1));
+        assertEquals(false, es.contains(e1));
+        assertEquals(true, es.contains(e2));
+    }
+
+    @Test
+    public void getAddressesFromMajesticFilature() throws IOException {
+        String brandUrl = "http://www.majesticfilatures.com/se/en/magasins";
+        Response response = Jsoup.connect(brandUrl)
+                .ignoreContentType(true)
+                .userAgent("Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:25.0) Gecko/20100101 Firefox/25.0")
+                .referrer("http://www.google.com")
+                .timeout(12000)
+                .followRedirects(true)
+                .execute();
+
+        Document doc = response.parse();
+        Elements stores = doc.select("div.column ul.stores-list li.column-one-third ");// > div.small-12.large-3.columns");
+        assertEquals(289, stores.size());
+        String searchText;
+        ManageGooglePlaces gp = new ManageGooglePlaces();
+        for (int s = 283; s < stores.size(); s++) {
+            searchText = stores.get(s).select("span").text();
+            System.out.println(s + " " + searchText);
+            gp.getAGooglePlaceFromTheString(searchText, brandUrl, "");
         }
     }
 }

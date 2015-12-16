@@ -39,6 +39,7 @@ public class ManageGooglePlaces {
         Place detailedPlace = null;
         for (Place place : places) {
             detailedPlace = place.getDetails();
+            Logger.getLogger(ManageGooglePlaces.class.getName()).log(Level.INFO, "place {0} {1}", new Object[]{places.size(), place.getName()});
             System.out.println("place " + places.size() + " " + place.getName());
             commitPlaceInfoToShopTable(sourceUrl, searchText, detailedPlace, alternateUrl);
         }
