@@ -1,6 +1,6 @@
 package com.amandineleforestier.test;
 //Henry-christ.com
-//Raw-fashion.com
+//Raw-fashion.comstores.get(s).select
 //Kirobykim.com
 //Decadent need website
 //Modstrom not stockists on website they have sales agents concepth stores http://www.modstrom.com/en/stores
@@ -901,6 +901,7 @@ public class NewEmptyJUnitTest {
     }
 
     @Test
+    @Ignore
     public void getAddressesFromMajesticFilature() throws IOException {
         String brandUrl = "http://www.majesticfilatures.com/se/en/magasins";
         Response response = Jsoup.connect(brandUrl)
@@ -921,5 +922,140 @@ public class NewEmptyJUnitTest {
             System.out.println(s + " " + searchText);
             gp.getAGooglePlaceFromTheString(searchText, brandUrl, "");
         }
+    }
+
+    @Test
+    @Ignore
+    public void getAddressesFromDrapeauNoir() throws IOException {
+        String brandUrl = "http://drapeau-noir.fr/stockists/";
+        Response response = Jsoup.connect(brandUrl)
+                .ignoreContentType(true)
+                .userAgent("Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:25.0) Gecko/20100101 Firefox/25.0")
+                .referrer("http://www.google.com")
+                .timeout(12000)
+                .followRedirects(true)
+                .execute();
+
+        Document doc = response.parse();
+        Elements stores = doc.select("div.o-stockists > div.o-stockist");// > div.small-12.large-3.columns");
+        assertEquals(15, stores.size());
+//        System.out.println(stores);
+        String searchText;
+//        Elements urls = stores.select("div.o-stockist > a[href]");
+//        System.out.println(urls);
+        ManageGooglePlaces gp = new ManageGooglePlaces();
+        for (int s = 0; s < stores.size(); s++) {
+            searchText = stores.get(s).select("div.o-stockist__name, div.o-stockist__address").text();
+//            url = stores.get(s).select("href").text();
+            System.out.println(s + " " + searchText + " " + stores.get(s).select("a[href]").html());// + " " + urls.get(s).html());
+            gp.getAGooglePlaceFromTheString(searchText, brandUrl, stores.get(s).select("a[href]").html());
+        }
+    }
+
+    @Test
+    @Ignore
+    public void getAddressesFromSchai() throws IOException {
+        String brandUrl = "http://schaischai.com/pages/stores";
+        Response response = Jsoup.connect(brandUrl)
+                .ignoreContentType(true)
+                .userAgent("Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:25.0) Gecko/20100101 Firefox/25.0")
+                .referrer("http://www.google.com")
+                .timeout(12000)
+                .followRedirects(true)
+                .execute();
+
+        Document doc = response.parse();
+        Elements stores = doc.select("div.small-12 p");// > div.small-12.large-3.columns");
+        assertEquals(13, stores.size());
+        String searchText;
+//        Elements urls = stores.select("div.o-stockist > a[href]");
+        System.out.println(stores);
+        ManageGooglePlaces gp = new ManageGooglePlaces();
+        for (int s = 0; s < stores.size(); s++) {
+            searchText = stores.get(s).text();//.select("div.o-stockist__name, div.o-stockist__address").text();
+//            url = stores.get(s).select("href").text();
+            System.out.println(s + " " + searchText.replace("|", "") + " " + stores.get(s).select("a[href]").attr("href"));// + " " + urls.get(s).html());
+            gp.getAGooglePlaceFromTheString(searchText.replace("|", ""), brandUrl, stores.get(s).select("a[href]").attr("href"));
+        }
+    }
+
+    @Test
+    public void getAddressesFromCluusa() throws IOException {
+        String brandUrl = "http://www.cluusa.com/stockist/";
+        Response response = Jsoup.connect(brandUrl)
+                .ignoreContentType(true)
+                .userAgent("Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:25.0) Gecko/20100101 Firefox/25.0")
+                .referrer("http://www.google.com")
+                .timeout(12000)
+                .followRedirects(true)
+                .execute();
+
+        Document doc = response.parse();
+//                System.out.println(doc);
+        Elements regions = doc.select("div.BlockContent > div.panelcollapsed");// > div.small-12.large-3.columns");
+//        assertEquals(3, regions.size());
+
+//        Elements urls = stores.select("div.o-stockist > a[href]");
+//        System.out.println(countriesandstore);
+        ManageGooglePlaces gp = new ManageGooglePlaces();
+
+        //searchText = countriesandstore.get(s).text;//.select("div.o-stockist__name, div.o-stockist__address").text();
+//            url = stores.get(s).select("href").text();
+        Elements continents = regions.get(1).select("div.panelcollapsed h3, div.panelcollapsed div.panelcontent");
+//        assertEquals(56, continents.size());
+//        for (int s = 2; s < 16; s += 2) {
+////            System.out.println(s + " " + continents.get(s).text());
+//            for (String store : continents.get(s + 1).html().split("<br>")) {
+//                String searchText = Jsoup.parse(store).text() + " " + continents.get(s).text();
+//                System.out.println(s + " " + searchText);
+//                gp.getAGooglePlaceFromTheString(searchText, brandUrl, "");
+//            }
+////            
+//        }
+//        for (int s = 18; s < 36; s += 2) {
+////            System.out.println(s + " " + continents.get(s).text());
+//            for (String store : continents.get(s + 1).html().split("<br>")) {
+//                String searchText = Jsoup.parse(store).text() + " " + continents.get(s).text();
+//                System.out.println(s + " " + searchText);
+//                gp.getAGooglePlaceFromTheString(searchText, brandUrl, "");
+//            }
+//        }
+//
+//        for (int s = 38; s < 48; s += 2) {
+////            System.out.println(s + " " + continents.get(s).text());
+//            for (String store : continents.get(s + 1).html().split("<br>")) {
+//                String searchText = Jsoup.parse(store).text() + " " + continents.get(s).text();
+//                System.out.println(s + " " + searchText);
+//                gp.getAGooglePlaceFromTheString(searchText, brandUrl, "");
+//            }
+//        }
+//
+//        for (int s = 50; s < 56; s += 2) {
+////            System.out.println(s + " " + continents.get(s).text());
+//            for (String store : continents.get(s + 1).html().split("<br>")) {
+//                String searchText = Jsoup.parse(store).text() + " " + continents.get(s).text();
+//                System.out.println(s + " " + searchText);
+//                gp.getAGooglePlaceFromTheString(searchText, brandUrl, "");
+//            }
+//        }
+//
+//        continents = regions.get(0).select("div.panelcollapsed h3, div.panelcollapsed div.panelcontent");
+//        assertEquals(26, continents.size());
+//        for (int s = 2; s < 26; s += 2) {
+////            System.out.println(s + " " + continents.get(s).text());
+//            for (String store : continents.get(s + 1).html().split("<br>")) {
+//                String searchText = Jsoup.parse(store).text() + " " + continents.get(s).text();
+//                System.out.println(s + " " + searchText);
+//                gp.getAGooglePlaceFromTheString(searchText, brandUrl, "");
+//            }
+//        }
+
+        continents = regions.get(2).select("div.panelcollapsed h3, div.panelcontent a");
+        assertEquals(9, continents.size());
+        for (int s =0; s < 9; s++) {
+            System.out.println(s + " " + continents.get(s).attr("href"));
+
+        }
+
     }
 }

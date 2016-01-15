@@ -26,10 +26,11 @@ import org.junit.Test;
  * @author janitha
  */
 public class EmailScraperTest {
-    
+
     public EmailScraperTest() {
     }
-       @Test
+
+    @Test
     @Ignore
     public void preFetchShopUrlsFromTable() {
         int offset = 0;
@@ -51,7 +52,7 @@ public class EmailScraperTest {
     }
 
     private List<Shops> getIterableModels(EntityManager em, int offset, Class<Shops> aClass) {
-        return em.createQuery("FROM Shops sh where sh.placetypes like '%clothing%' and sh.shopurl is not null and sh.shopurl <> ''", aClass).
+        return em.createQuery("FROM Shops sh where sh.placetypes like '%clothing%' and sh.shopurl is not null and sh.shopurl <> '' group by sh.shopurl", aClass).
                 setFirstResult(offset).
                 setMaxResults(100).
                 getResultList();
@@ -62,7 +63,7 @@ public class EmailScraperTest {
         CrawlConfig config = new CrawlConfig();
         config.setCrawlStorageFolder("C:\\Users\\janitha\\Documents\\NetBeansProjects\\crawlshopsforcoucou\\target\\interim");
         config.setPolitenessDelay(1000);
-        config.setMaxDepthOfCrawling(2);
+        config.setMaxDepthOfCrawling(1);
         config.setIncludeBinaryContentInCrawling(false);
         config.setResumableCrawling(false);
         PageFetcher pageFetcher = new PageFetcher(config);
